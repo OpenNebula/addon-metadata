@@ -1,4 +1,4 @@
-addon-metadata - Metadata server for OpenNebula
+# addon-metadata - Metadata server for OpenNebula
 
 ## DESCRIPTION
 
