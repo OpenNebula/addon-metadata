@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# Copyright 2012, Ricardo Duarte (ricardo.duarte@outlook.com)                #
+# Copyright 2002-2012, OpenNebula Project Leads (OpenNebula.org)             #
 #                                                                            #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may    #
 # not use this file except in compliance with the License. You may obtain    #
@@ -31,8 +31,8 @@ else
     RUBY_LIB_LOCATION = ONE_LOCATION+"/lib/ruby"
 end
 
-EC2_AUTH           = VAR_LOCATION + "/.one/ec2_auth"
-EC2_LOG            = LOG_LOCATION + "/metadata-server.log"
+METADATA_AUTH           = VAR_LOCATION + "/.one/ec2_auth"
+METADATA_LOG            = LOG_LOCATION + "/metadata-server.log"
 CONFIGURATION_FILE = ETC_LOCATION + "/metadata.conf"
 
 TEMPLATE_LOCATION  = ETC_LOCATION + "/ec2query_templates"
@@ -68,13 +68,14 @@ end
 conf[:template_location] = TEMPLATE_LOCATION
 conf[:views] = VIEWS_LOCATION
 conf[:debug_level] ||= 3
+conf[:cloud_domain] ||= nil
 
 ##############################################################################
 # Sinatra Configuration
 ##############################################################################
 
 include CloudLogger
-logger = enable_logging EC2_LOG, conf[:debug_level].to_i
+logger = enable_logging METADATA_LOG, conf[:debug_level].to_i
 
 if conf[:server]
     conf[:host] ||= conf[:server]
@@ -96,7 +97,7 @@ set :bind, conf[:host]
 set :port, conf[:port]
 
 begin
-    ENV["ONE_CIPHER_AUTH"] = EC2_AUTH
+    ENV["ONE_CIPHER_AUTH"] = METADATA_AUTH
     cloud_auth = CloudAuth.new(conf, logger)
 rescue => e
     logger.error {"Error initializing authentication system"}
@@ -117,6 +118,10 @@ else
     metadata_path = '/'
 end
 
+unless conf[:cloud_domain].nil? or conf[:cloud_domain].start_with?('.')
+    conf[:cloud_domain].insert(0,'.')
+end
+
 set :metadata_host, metadata_host
 set :metadata_port, metadata_port
 set :metadata_path, metadata_path
@@ -133,6 +138,7 @@ before do
         params['metadata_host'] = settings.metadata_host
         params['metadata_port'] = settings.metadata_port
         params['metadata_path'] = settings.metadata_path
+        params['cloud_domain'] = conf[:cloud_domain]
         oneadmin_client = settings.cloud_auth.client
         @metadata_server = MetadataServer.new(oneadmin_client, settings.config, settings.logger)
     end
@@ -181,6 +187,10 @@ get '/*/user-data/?' do
     do_metadata_request(request.ip, 'user-data')
 end
 
+get '/*' do
+    do_root_request(params)
+end
+
 not_found do
     halt 404
 end
@@ -188,6 +198,17 @@ end
 def do_version_request(params)
 
     result,rc = @metadata_server.version(params)
+
+    if rc != 200
+      halt 404
+    end
+
+    result
+end
+
+def do_root_request(params)
+
+    result,rc = @metadata_server.root(params)
 
     if rc != 200
       halt 404

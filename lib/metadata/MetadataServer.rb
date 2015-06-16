@@ -1,5 +1,6 @@
 # -------------------------------------------------------------------------- #
-# Copyright 2012, Ricardo Duarte (ricardo.duarte@outlook.com)                #
+# Copyright 2002-2012, OpenNebula Project Leads (OpenNebula.org)             #
+# Copyright 2012, Ricardo Duarte                                             #
 #                                                                            #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may    #
 # not use this file except in compliance with the License. You may obtain    #
@@ -44,6 +45,11 @@ class MetadataServer < CloudServer
         return response.result(binding), 200
     end
 
+    def root(params)
+        response = ERB.new(File.read(@config[:views]+"/root.erb"))
+        return response.result(binding), 200
+    end
+
     def get_value(ip, command, params = nil)
         @value = nil
         flags = OpenNebula::Pool::INFO_ALL || OpenNebula::VirtualMachinePool::INFO_NOT_DONE
@@ -54,7 +60,7 @@ class MetadataServer < CloudServer
           if vm["TEMPLATE/NIC/IP"] == ip 
             case command
               when 'top-level'
-		@capabilities = ['instance-id', 'local-ipv4', 'local-hostname', 'public-hostname', 'public-ipv4']
+		@capabilities = ['instance-id', 'local-ipv4', 'local-hostname', 'hostname', 'public-hostname', 'public-ipv4']
 		@capabilities << 'user-data' if vm["TEMPLATE/CONTEXT/EC2_USER_DATA"]
 		@capabilities << 'public-keys/' if vm["TEMPLATE/CONTEXT/EC2_PUBLIC_KEY"]
 		@capabilities << ['ami-id', 'ami-launch-index', 'ami-manifest-path', 'instance-type', 'reservation-id' ] if vm['TEMPLATE/IMAGE_ID']
@@ -82,10 +88,12 @@ class MetadataServer < CloudServer
                 @value = "r-#{vm.id}"
               when 'security-groups'
               #  @value = ""
-              when 'local-hostname' # 2007-01-19
-                @value = "one-#{vm.id}.cloud"
+              when 'local-hostname'  # 2007-01-19
+                @value = "i-#{vm.id}#{params[:cloud_domain]}"
               when 'public-hostname'
-                @value = "one-#{vm.id}.cloud"
+                @value = "i-#{vm.id}#{params[:cloud_domain]}"
+              when 'hostname'
+                @value = "i-#{vm.id}#{params[:cloud_domain]}"
               when 'public-ipv4'
                 @value = "#{ip}"
               when 'instance-type'  # 2007-08-29
