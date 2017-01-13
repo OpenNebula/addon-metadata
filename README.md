@@ -4,6 +4,16 @@
 
 This addon is a metadata server, compatible with EC2, 
 for the OpenNebula Cloud Toolkit.
+This allows any Openstack, Amazon AMIs or any cloud-init based image with OpenNebula, without any change.
+The images will be contextualized, and will process user-data with or without cloud-init.
+Also allows any script relying on Amazon Metadata to run inside OpenNebula, without change.
+
+Example:
+
+1. Download CoreOS OpenStack image from the coreos site (https://stable.release.core-os.net/amd64-usr/current/coreos_production_openstack_image.img.bz2)
+2. Register coreos_production_openstack_image.img to OpenNebula
+3. Run the image with any user-data script supported by CoreOS
+4. The image will boot and be contextualized, without any change
 
 ## Development
 
@@ -21,8 +31,8 @@ More info:
 
 ## Compatibility
 
-This add-on is compatible with OpenNebula 3.8, 4.0, 4.2, 4.4.
-Tested extensively with 4.4 (EC2)
+This add-on is compatible with OpenNebula 3.8, 4.0, 4.2, 4.4, 4.12, 4.14.
+Tested extensively with 4.12 (EC2)
 
 ## INSTALLATION
 
@@ -101,7 +111,7 @@ Ricardo Duarte (ricardo.duarte@outlook.com)
 
 ## COPYRIGHT
 
-Copyright 2014, Ricardo Duarte (ricardo.duarte@outlook.com)
+Copyright 2017, Ricardo Duarte (ricardo.duarte@outlook.com)
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may
 not use this file except in compliance with the License. You may obtain

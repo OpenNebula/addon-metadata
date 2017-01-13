@@ -64,12 +64,17 @@ class MetadataServer < CloudServer
 		@capabilities << 'user-data' if vm["TEMPLATE/CONTEXT/EC2_USER_DATA"]
 		@capabilities << 'public-keys/' if vm["TEMPLATE/CONTEXT/EC2_PUBLIC_KEY"]
 		@capabilities << ['ami-id', 'ami-launch-index', 'ami-manifest-path', 'instance-type', 'reservation-id' ] if vm['TEMPLATE/IMAGE_ID']
+		@capabilities << ['mac'] if vm['TEMPLATE/NIC/MAC']
 		@capabilities.flatten!
                 @value = ERB.new(File.read(@config[:views]+"/top_level.erb"), nil, '%<>-').result(binding)
               when 'ami-id'
-                @value = "#{vm['TEMPLATE/IMAGE_ID']}" if vm['TEMPLATE/IMAGE_ID']
+                vm.each('TEMPLATE/DISK') do |disk|
+                   unless disk['PERSISTENT'] == 'YES'
+                    @value = disk['IMAGE_ID']
+                   end
+                end
               when 'instance-id'
-                @value = "i-#{vm.id}"
+                @value = "i-#{vm.id}
               when 'ami-launch-index'
                 @value = "#{vm.id}"
               when 'ami-manifest-path'
@@ -94,13 +99,20 @@ class MetadataServer < CloudServer
                 @value = "i-#{vm.id}#{params[:cloud_domain]}"
               when 'hostname'
                 @value = "i-#{vm.id}#{params[:cloud_domain]}"
-              when 'public-ipv4'
+              when 'public-ipv4' # 2007-01-19
                 @value = "#{ip}"
               when 'instance-type'  # 2007-08-29
-                @value = vm["TEMPLATE/INSTANCE_TYPE"]
+                if not vm['USER_TEMPLATE/INSTANCE_TYPE'].nil?
+                  @value = vm['USER_TEMPLATE/INSTANCE_TYPE']
+                elsif not vm['TEMPLATE/INSTANCE_TYPE'].nil?
+                  @value = vm['TEMPLATE/INSTANCE_TYPE']
+                else
+                  @value = 'm1.custom'
+                end 
+              when 'mac' # 2011-01-01
+                @value = vm['TEMPLATE/NIC/MAC']
               when 'user-data'
                 @value = Base64.decode64(vm["TEMPLATE/CONTEXT/EC2_USER_DATA"]) if vm["TEMPLATE/CONTEXT/EC2_USER_DATA"]
-
               end
             break
           end
